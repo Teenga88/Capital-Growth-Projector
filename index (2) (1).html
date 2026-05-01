@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Capital Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f0e;
+    --surface: #141614;
+    --surface2: #1a1d1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8ebe8;
+    --text2: #8a9088;
+    --text3: #4a4f48;
+    --green: #1D9E75;
+    --green-light: #5DCAA5;
+    --blue: #378ADD;
+    --red: #E24B4A;
+    --amber: #EF9F27;
+    --gray: #888780;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 2rem 1.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .header {
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+  }
+  .header .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .header .sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 13px;
+  }
+  .stat-card .lb {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 4px;
+  }
+  .stat-card .vl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stat-card .vl.pos { color: var(--green-light); }
+  .stat-card .vl.neg { color: var(--red); }
+
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .controls-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+  }
+  .ctrl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1.5rem;
+  }
+  @media (max-width: 540px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .sl { display: flex; align-items: center; gap: 10px; }
+  .sl label {
+    font-size: 12px;
+    color: var(--text2);
+    min-width: 120px;
+  }
+  .sl input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .sl input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    background: var(--green);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sl input[type=range]::-webkit-slider-thumb:hover { background: var(--green-light); }
+  .sl .v {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .exp-bar {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .exp-bar .exp-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    min-width: 100px;
+  }
+  .exp-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .exp-note {
+    font-size: 11px;
+    color: var(--text2);
+    margin-left: 6px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 0.6rem;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .lsq { width: 10px; height: 3px; border-radius: 1px; flex-shrink: 0; }
+  .lsq.dash { background: repeating-linear-gradient(90deg,currentColor 0,currentColor 4px,transparent 4px,transparent 7px); }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin-bottom: 1.5rem;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  .results-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.6rem;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+  .rc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .rc .t {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+  }
+  .rc .n {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .rc .s { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-top: 5px;
+    letter-spacing: 0.05em;
+  }
+  .ok  { background: rgba(29,158,117,.15); color:#5DCAA5; border:1px solid rgba(29,158,117,.3); }
+  .warn{ background: rgba(239,159,39,.12); color:#EF9F27; border:1px solid rgba(239,159,39,.25); }
+  .bad { background: rgba(226,75,74,.12);  color:#E24B4A; border:1px solid rgba(226,75,74,.25); }
+
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 13px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.75;
+  }
+  .verdict strong { color: var(--text); font-weight: 500; }
+
+  .footer {
+    margin-top: 1.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag">Trading Capital Simulator — Interactive</div>
+  <h1>Capital Growth Projector</h1>
+  <div class="sub">ทุนเริ่มต้น 17,306.80¢ → เป้าหมาย 1,000,000¢ &nbsp;|&nbsp; เปรียบเทียบ Risk 5% vs 10%</div>
+</div>
+
+<div class="stat-grid" id="stat-grid"></div>
+
+<div class="controls">
+  <div class="controls-title">ปรับพารามิเตอร์</div>
+  <div class="ctrl-grid">
+    <div class="sl">
+      <label>winrate (%)</label>
+      <input type="range" min="20" max="80" value="40" step="1" id="s-wr" oninput="run()">
+      <span class="v" id="o-wr">40%</span>
+    </div>
+    <div class="sl">
+      <label>avg RR win</label>
+      <input type="range" min="10" max="150" value="97" step="1" id="s-rr" oninput="run()">
+      <span class="v" id="o-rr">9.7R</span>
+    </div>
+    <div class="sl">
+      <label>ไม้ต่อวัน</label>
+      <input type="range" min="1" max="5" value="2" step="1" id="s-tpd" oninput="run()">
+      <span class="v" id="o-tpd">2</span>
+    </div>
+    <div class="sl">
+      <label>วันเทรด/สัปดาห์</label>
+      <input type="range" min="1" max="5" value="4" step="1" id="s-dpw" oninput="run()">
+      <span class="v" id="o-dpw">4</span>
+    </div>
+  </div>
+  <div class="exp-bar">
+    <span class="exp-label">Expectancy/ไม้</span>
+    <span class="exp-val" id="exp-val">—</span>
+    <span class="exp-note" id="exp-note">—</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="lsq" style="background:#1D9E75;height:2px;width:16px"></span>risk 10% — base</span>
+  <span><span class="lsq" style="background:#378ADD;height:2px;width:16px"></span>risk 10% — best (+12% WR)</span>
+  <span><span class="lsq" style="background:#E24B4A;height:2px;width:16px"></span>risk 10% — worst (−15% WR)</span>
+  <span><span class="lsq" style="background:#888780;height:2px;width:16px"></span>risk 5% — base</span>
+</div>
+<div class="chart-wrap">
+  <canvas id="chart1" role="img" aria-label="กราฟการเติบโตของทุนเปรียบเทียบ risk 5% และ 10% ตามจำนวนสัปดาห์">กราฟแสดงการเติบโตของทุนในแต่ละสัปดาห์</canvas>
+</div>
+
+<hr class="divider">
+<div class="results-title">ผลลัพธ์เปรียบเทียบ</div>
+<div class="result-grid" id="result-grid"></div>
+<div class="verdict" id="verdict"></div>
+
+<div class="footer">
+  <span>expectancy = (WR × RR_win) − (1 − WR)</span>
+  <span>worst = WR−15% &nbsp;|&nbsp; best = WR+12%</span>
+  <span>log scale &nbsp;|&nbsp; ข้อมูลจาก Notion Journal</span>
+</div>
+
+<script>
+const START = 17306.80;
+const TARGET = 1000000;
+const WEEKS_MAX = 520;
+
+function fmtC(v) {
+  if (v >= 1000000) return (v / 1000000).toFixed(2) + 'M¢';
+  if (v >= 1000) return (v / 1000).toFixed(1) + 'k¢';
+  return Math.round(v) + '¢';
+}
+function fmtTime(weeks) {
+  if (!weeks || weeks >= WEEKS_MAX) return '>10 ปี';
+  const m = weeks / 4.33;
+  if (m < 1) return Math.round(weeks) + ' สัปดาห์';
+  if (m < 24) return m.toFixed(1) + ' เดือน';
+  return (m / 12).toFixed(1) + ' ปี';
+}
+function in2026(weeks) { return weeks && weeks <= 35; }
+
+function grow(risk, wrEff, rrWin, tpd, dpw) {
+  let cap = START;
+  const data = [cap];
+  const n = tpd * dpw;
+  if (n <= 0) return data;
+  for (let w = 0; w < WEEKS_MAX; w++) {
+    const wins = wrEff * n, losses = n - wins;
+    cap = cap * Math.pow(1 + (risk / 100) * rrWin, wins) * Math.pow(1 - risk / 100, losses);
+    cap = Math.max(1, Math.round(cap * 100) / 100);
+    data.push(cap);
+    if (cap >= TARGET || cap < 10) break;
+  }
+  return data;
+}
+
+function wkToTarget(d) { const i = d.findIndex(v => v >= TARGET); return i === -1 ? null : i; }
+
+let chart = null;
+
+function run() {
+  const wr = parseInt(document.getElementById('s-wr').value) / 100;
+  const rrRaw = parseInt(document.getElementById('s-rr').value);
+  const rr = rrRaw / 10;
+  const tpd = parseInt(document.getElementById('s-tpd').value);
+  const dpw = parseInt(document.getElementById('s-dpw').value);
+
+  document.getElementById('o-wr').textContent = Math.round(wr * 100) + '%';
+  document.getElementById('o-rr').textContent = rr.toFixed(1) + 'R';
+  document.getElementById('o-tpd').textContent = tpd;
+  document.getElementById('o-dpw').textContent = dpw;
+
+  const exp = wr * rr - (1 - wr);
+  const expEl = document.getElementById('exp-val');
+  const noteEl = document.getElementById('exp-note');
+  expEl.textContent = (exp >= 0 ? '+' : '') + exp.toFixed(3) + 'R';
+  expEl.style.color = exp > 0 ? '#5DCAA5' : exp === 0 ? '#EF9F27' : '#E24B4A';
+  noteEl.textContent = exp > 0 ? 'ระบบนี้ profitable' : exp === 0 ? 'breakeven' : 'ขาดทุนระยะยาว';
+
+  const b10 = grow(10, wr, rr, tpd, dpw);
+  const best10 = grow(10, Math.min(wr + 0.12, 0.95), rr, tpd, dpw);
+  const worst10 = grow(10, Math.max(wr - 0.15, 0.01), rr, tpd, dpw);
+  const b5 = grow(5, wr, rr, tpd, dpw);
+
+  const maxLen = Math.max(b10.length, best10.length, worst10.length, b5.length, 4);
+  const labels = Array.from({ length: maxLen }, (_, i) => 'W' + i);
+  const pad = (a) => { const r = [...a]; while (r.length < maxLen) r.push(r[r.length - 1] || 1); return r; };
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="lb">ทุนเริ่มต้น</div><div class="vl">${fmtC(START)}</div></div>
+    <div class="stat-card"><div class="lb">เป้าหมาย</div><div class="vl">1.00M¢</div></div>
+    <div class="stat-card"><div class="lb">WR / RR win</div><div class="vl">${Math.round(wr*100)}% / ${rr.toFixed(1)}R</div></div>
+    <div class="stat-card"><div class="lb">Expectancy/ไม้</div><div class="vl ${exp > 0 ? 'pos' : 'neg'}">${(exp >= 0 ? '+' : '')}${exp.toFixed(3)}R</div></div>
+    <div class="stat-card"><div class="lb">ไม้/สัปดาห์</div><div class="vl">${tpd * dpw} ไม้</div></div>
+  `;
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart1').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10% base', data: pad(b10), borderColor: '#1D9E75', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+        { label: '10% best', data: pad(best10), borderColor: '#378ADD', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.3 },
+        { label: '10% worst', data: pad(worst10), borderColor: '#E24B4A', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, tension: 0.3 },
+        { label: '5% base', data: pad(b5), borderColor: '#888780', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, tension: 0.3 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          type: 'logarithmic', min: 5000,
+          ticks: { color: '#4a4f48', font: { size: 10, family: "'IBM Plex Mono', monospace" }, callback: v => fmtC(v) },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        x: {
+          ticks: { color: '#4a4f48', font: { size: 9, family: "'IBM Plex Mono', monospace" }, maxTicksLimit: 10, callback: (v, i) => i % 8 === 0 ? 'W' + i : '' },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+
+  const wk10b = wkToTarget(b10);
+  const wk10best = wkToTarget(best10);
+  const wk10worst = wkToTarget(worst10);
+  const wk5b = wkToTarget(b5);
+
+  function card(t, val, sub, cls, badge) {
+    return `<div class="rc"><div class="t">${t}</div><div class="n">${val}</div><div class="s">${sub}</div><span class="badge ${cls}">${badge}</span></div>`;
+  }
+
+  document.getElementById('result-grid').innerHTML =
+    card('risk 10% — base', fmtTime(wk10b), wk10b ? `สัปดาห์ที่ ${wk10b}` : '—', in2026(wk10b) ? 'ok' : 'warn', in2026(wk10b) ? 'จบใน 2026' : 'เลย 2026') +
+    card('risk 10% — best', fmtTime(wk10best), wk10best ? `สัปดาห์ที่ ${wk10best}` : '—', in2026(wk10best) ? 'ok' : 'warn', in2026(wk10best) ? 'จบใน 2026' : 'เลย 2026') +
+    card('risk 10% — worst', fmtTime(wk10worst), wk10worst ? `สัปดาห์ที่ ${wk10worst}` : 'ไม่ถึง', wk10worst ? 'warn' : 'bad', wk10worst ? 'เลย 2026' : 'ไม่ถึง') +
+    card('risk 5% — base', fmtTime(wk5b), wk5b ? `สัปดาห์ที่ ${wk5b}` : '—', in2026(wk5b) ? 'ok' : 'warn', in2026(wk5b) ? 'จบใน 2026' : 'เลย 2026');
+
+  const faster = wk10b && wk5b && wk5b > wk10b ? Math.round((wk5b - wk10b) / 4.33) : null;
+  let v = '';
+  if (exp <= 0) {
+    v = `<strong>ระบบนี้ขาดทุนระยะยาว</strong> — expectancy ${exp.toFixed(3)}R/ไม้ ต้องเพิ่ม RR หรือ winrate ก่อนถึงจะ profitable`;
+  } else {
+    v = `<strong>Expectancy ${exp > 0 ? '+' : ''}${exp.toFixed(3)}R/ไม้</strong> — ระบบนี้ profitable `;
+    v += wk10b ? `Risk 10% base case ถึงเป้าในสัปดาห์ที่ ${wk10b} (${fmtTime(wk10b)})` : 'Risk 10% base case ไม่ถึงในกรอบเวลา';
+    if (faster) v += ` เร็วกว่า risk 5% ประมาณ ${faster} เดือน`;
+    if (wk10worst) v += ` — แม้ worst case ก็ยังถึงเป้า (สัปดาห์ที่ ${wk10worst}) เพราะ expectancy ยังเป็นบวก`;
+    else v += ` — worst case ไม่ถึงเป้า ควรระวัง drawdown`;
+  }
+  document.getElementById('verdict').innerHTML = v;
+}
+
+run();
+</script>
+</body>
+</html>
